@@ -112,3 +112,13 @@ class ProductRepository:
                 lastUpdated=dt
             ))
         return products
+
+    async def delete_product(self, product_id: str) -> bool:
+        stmt = select(Product).where(Product.id == product_id)
+        result = await self.db.execute(stmt)
+        product = result.scalars().first()
+        if product:
+            await self.db.delete(product)
+            await self.db.commit()
+            return True
+        return False

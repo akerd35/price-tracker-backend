@@ -44,3 +44,12 @@ async def get_notifications(db: AsyncSession = Depends(get_db)) -> List[Notifica
     repo = NotificationRepository(db)
     notifications = await repo.get_all_notifications()
     return notifications
+
+@app.delete("/api/v1/products/{product_id}", tags=["Products"])
+async def delete_product(product_id: str, db: AsyncSession = Depends(get_db)):
+    repo = ProductRepository(db)
+    success = await repo.delete_product(product_id)
+    if success:
+        return {"status": "success", "message": "Product deleted successfully"}
+    return {"status": "error", "message": "Product not found"}
+
