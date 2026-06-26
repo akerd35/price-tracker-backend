@@ -21,7 +21,7 @@ class UniversalScraper(BaseScraper):
         target_url = url
         scraper_api_key = os.getenv("SCRAPER_API_KEY")
         if scraper_api_key:
-            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true&premium=true"
+            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true"
             async with httpx.AsyncClient(timeout=90.0) as client:
                 try:
                     response = await client.get(target_url, headers=headers)
