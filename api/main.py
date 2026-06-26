@@ -21,17 +21,13 @@ async def health_check() -> dict:
 @app.post("/api/v1/products", tags=["Products"], response_model=ProductResponse)
 async def create_product(product: ProductResponse, db: AsyncSession = Depends(get_db)) -> ProductResponse:
     repo = ProductRepository(db)
-    # product_data should be dictionary for repo.save_product
-    product_data = product.dict()
-    saved_product = await repo.save_product(product_data)
+    saved_product = await repo.save_product(product)
     return saved_product
 
 @app.put("/api/v1/products/{product_id}", tags=["Products"], response_model=ProductResponse)
 async def update_product(product_id: str, product: ProductResponse, db: AsyncSession = Depends(get_db)) -> ProductResponse:
     repo = ProductRepository(db)
-    # Just save it again, repo.save_product uses merge/upsert based on ID or URL
-    product_data = product.dict()
-    saved_product = await repo.save_product(product_data)
+    saved_product = await repo.save_product(product)
     return saved_product
 
 @app.get("/api/v1/products", tags=["Products"], response_model=List[ProductResponse])
