@@ -20,6 +20,7 @@ class UniversalScraper(BaseScraper):
         
         target_url = url
         scraper_api_key = os.getenv("SCRAPER_API_KEY")
+        error_msg = ""
         if scraper_api_key:
             target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true"
             async with httpx.AsyncClient(timeout=90.0) as client:
@@ -29,6 +30,7 @@ class UniversalScraper(BaseScraper):
                     html_content = response.text
                 except Exception as e:
                     html_content = ""
+                    error_msg = f"HTTPX_ERR: {str(e)[:100]}"
                     print(f"UniversalScraper error fetching {target_url} via httpx: {e}")
         else:
             async with AsyncSession(impersonate='chrome110') as client:
@@ -38,11 +40,12 @@ class UniversalScraper(BaseScraper):
                     html_content = response.text
                 except Exception as e:
                     html_content = ""
+                    error_msg = f"CURL_ERR: {str(e)[:100]}"
                     print(f"UniversalScraper error fetching {target_url}: {e}")
             
         soup = BeautifulSoup(html_content, "lxml")
         
-        title = "Unknown Product"
+        title = error_msg if error_msg else "Unknown Product"
         price = 0.0
         image_url = "https://via.placeholder.com/300"
         
