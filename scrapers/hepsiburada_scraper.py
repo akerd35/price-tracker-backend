@@ -16,18 +16,10 @@ class HepsiburadaScraper(BaseScraper):
             "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
         }
         target_url = url
-        scraper_api_key = os.getenv("SCRAPER_API_KEY")
-        if scraper_api_key:
-            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true"
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                response = await client.get(target_url, headers=headers)
-                response.raise_for_status()
-                html_content = response.text
-        else:
-            async with AsyncSession(impersonate='chrome110') as client:
-                response = await client.get(target_url, headers=headers, timeout=90)
-                response.raise_for_status()
-                html_content = response.text
+        async with AsyncSession(impersonate='chrome110') as client:
+            response = await client.get(target_url, headers=headers, timeout=90)
+            response.raise_for_status()
+            html_content = response.text
             
         soup = BeautifulSoup(html_content, "lxml")
         

@@ -19,29 +19,17 @@ class UniversalScraper(BaseScraper):
         }
         
         target_url = url
-        scraper_api_key = os.getenv("SCRAPER_API_KEY")
         error_msg = ""
-        if scraper_api_key:
-            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true"
-            async with httpx.AsyncClient(timeout=90.0) as client:
-                try:
-                    response = await client.get(target_url, headers=headers)
-                    response.raise_for_status()
-                    html_content = response.text
-                except Exception as e:
-                    html_content = ""
-                    error_msg = f"HTTPX_ERR: {str(e)[:100]}"
-                    print(f"UniversalScraper error fetching {target_url} via httpx: {e}")
-        else:
-            async with AsyncSession(impersonate='chrome110') as client:
-                try:
-                    response = await client.get(target_url, headers=headers, timeout=90)
-                    response.raise_for_status()
-                    html_content = response.text
-                except Exception as e:
-                    html_content = ""
-                    error_msg = f"CURL_ERR: {str(e)[:100]}"
-                    print(f"UniversalScraper error fetching {target_url}: {e}")
+        
+        async with AsyncSession(impersonate='chrome110') as client:
+            try:
+                response = await client.get(target_url, headers=headers, timeout=90)
+                response.raise_for_status()
+                html_content = response.text
+            except Exception as e:
+                html_content = ""
+                error_msg = f"CURL_ERR: {str(e)[:100]}"
+                print(f"UniversalScraper error fetching {target_url}: {e}")
             
         soup = BeautifulSoup(html_content, "lxml")
         
@@ -151,7 +139,33 @@ class UniversalScraper(BaseScraper):
                                 break
                         except ValueError:
                             pass
+                            
+        # Extreme Fallback Regex for Client-Side Rendered hidden JSON states (Trendyol, Vatan etc.)
+        if price == 0.0 and html_content:
+            regex_patterns = [
+                r'"discountedPrice"\s*:\s*([\d.]+)',
+                r'"sellingPrice"\s*:\s*([\d.]+)',
+                r'"price"\s*:\s*([\d.]+)',
+                r'data-price="([\d.]+)"',
+                r'"priceAmount"\s*:\s*([\d.]+)',
+                r'content="([\d.]+)"[^>]*itemprop="price"'
+            ]
+            for pattern in regex_patterns:
+                match = re.search(pattern, html_content)
+                if match:
+                    try:
+                        extracted = float(match.group(1))
+                        if extracted > 0:
+                            price = extracted
+                            break
+                    except ValueError:
+                        continue
 
+        if title == "Unknown Product" and html_content:
+            title_match = re.search(r'<title>(.*?)</title>', html_content, re.IGNORECASE)
+            if title_match:
+                title = html.unescape(title_match.group(1).replace(" - Vatan Bilgisayar", "").replace(" - Trendyol", "").strip())
+                
         return ProductResponse(
             id=str(uuid.uuid4()),
             name=title[:255] if len(title) > 255 else title, # Prevent too long titles
