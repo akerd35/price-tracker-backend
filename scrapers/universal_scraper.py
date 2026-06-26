@@ -24,7 +24,7 @@ class UniversalScraper(BaseScraper):
         
         async with AsyncSession(impersonate='chrome110') as client:
             try:
-                response = await client.get(target_url, headers=headers)
+                response = await client.get(target_url, headers=headers, timeout=90)
                 response.raise_for_status()
                 html = response.text
             except Exception as e:

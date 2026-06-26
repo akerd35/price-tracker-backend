@@ -20,7 +20,7 @@ class AmazonScraper(BaseScraper):
             target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true"
             
         async with AsyncSession(impersonate='chrome110') as client:
-            response = await client.get(target_url, headers=headers)
+            response = await client.get(target_url, headers=headers, timeout=90)
             response.raise_for_status()
             html = response.text
             
