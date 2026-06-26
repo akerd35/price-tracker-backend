@@ -1,6 +1,7 @@
 import uuid
 import os
 import urllib.parse
+import html
 from curl_cffi.requests import AsyncSession
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
@@ -16,7 +17,7 @@ class AmazonScraper(BaseScraper):
         target_url = url
         scraper_api_key = os.getenv("SCRAPER_API_KEY")
         if scraper_api_key:
-            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}"
+            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true"
             
         async with AsyncSession(impersonate='chrome110') as client:
             response = await client.get(target_url, headers=headers)
@@ -75,9 +76,12 @@ class AmazonScraper(BaseScraper):
             if og_image and og_image.get("content"):
                 image_url = og_image["content"]
                 
+        if title:
+            title = html.unescape(title)
+
         return ProductResponse(
             id=str(uuid.uuid4()),
-            name=title,
+            name=title[:255] if len(title) > 255 else title,
             storeUrl=url,
             currentPrice=price,
             targetPrice=None,

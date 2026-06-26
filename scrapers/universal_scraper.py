@@ -2,6 +2,8 @@ import uuid
 import json
 import os
 import urllib.parse
+import html
+import re
 from curl_cffi.requests import AsyncSession
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
@@ -18,7 +20,7 @@ class UniversalScraper(BaseScraper):
         target_url = url
         scraper_api_key = os.getenv("SCRAPER_API_KEY")
         if scraper_api_key:
-            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}"
+            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true"
         
         async with AsyncSession(impersonate='chrome110') as client:
             try:
@@ -103,6 +105,40 @@ class UniversalScraper(BaseScraper):
             og_image = soup.find("meta", property="og:image")
             if og_image and og_image.get("content"):
                 image_url = og_image["content"]
+
+        if title:
+            title = html.unescape(title)
+
+        # Fallback CSS Selectors for Price
+        if price == 0.0:
+            price_selectors = [
+                ".prc-dsc", # Trendyol
+                "[data-test-id='price']", # Hepsiburada
+                ".product-list__price", # Vatan (list)
+                ".product-detail-price", # Vatan (detail)
+                ".product-price",
+                ".price",
+                "#offering-price"
+            ]
+            for selector in price_selectors:
+                price_tag = soup.select_one(selector)
+                if price_tag:
+                    price_text = price_tag.get_text(strip=True)
+                    # Extract digits, comma, dot
+                    clean_text = re.sub(r'[^\d,.]', '', price_text)
+                    if clean_text:
+                        # Fix Turkish formatting (e.g. 5.699,00 -> 5699.00)
+                        if ',' in clean_text and '.' in clean_text:
+                            clean_text = clean_text.replace('.', '').replace(',', '.')
+                        elif ',' in clean_text:
+                            clean_text = clean_text.replace(',', '.')
+                        
+                        try:
+                            price = float(clean_text)
+                            if price > 0:
+                                break
+                        except ValueError:
+                            pass
 
         return ProductResponse(
             id=str(uuid.uuid4()),
