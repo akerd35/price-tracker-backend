@@ -4,6 +4,7 @@ import os
 import urllib.parse
 import html
 import re
+import httpx
 from curl_cffi.requests import AsyncSession
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
@@ -20,18 +21,26 @@ class UniversalScraper(BaseScraper):
         target_url = url
         scraper_api_key = os.getenv("SCRAPER_API_KEY")
         if scraper_api_key:
-            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true"
-        
-        async with AsyncSession(impersonate='chrome110') as client:
-            try:
-                response = await client.get(target_url, headers=headers, timeout=90)
-                response.raise_for_status()
-                html = response.text
-            except Exception as e:
-                html = ""
-                print(f"UniversalScraper error fetching {target_url}: {e}")
+            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}&render=true&premium=true"
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                try:
+                    response = await client.get(target_url, headers=headers)
+                    response.raise_for_status()
+                    html_content = response.text
+                except Exception as e:
+                    html_content = ""
+                    print(f"UniversalScraper error fetching {target_url} via httpx: {e}")
+        else:
+            async with AsyncSession(impersonate='chrome110') as client:
+                try:
+                    response = await client.get(target_url, headers=headers, timeout=90)
+                    response.raise_for_status()
+                    html_content = response.text
+                except Exception as e:
+                    html_content = ""
+                    print(f"UniversalScraper error fetching {target_url}: {e}")
             
-        soup = BeautifulSoup(html, "lxml")
+        soup = BeautifulSoup(html_content, "lxml")
         
         title = "Unknown Product"
         price = 0.0
