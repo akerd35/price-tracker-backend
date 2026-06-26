@@ -1,5 +1,7 @@
 import uuid
 import json
+import os
+import urllib.parse
 from curl_cffi.requests import AsyncSession
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
@@ -13,14 +15,19 @@ class UniversalScraper(BaseScraper):
             "Accept-Language": "en-US,en;q=0.9,tr-TR;q=0.8,tr;q=0.7",
         }
         
+        target_url = url
+        scraper_api_key = os.getenv("SCRAPER_API_KEY")
+        if scraper_api_key:
+            target_url = f"http://api.scraperapi.com/?api_key={scraper_api_key}&url={urllib.parse.quote(url)}"
+        
         async with AsyncSession(impersonate='chrome110') as client:
             try:
-                response = await client.get(url, headers=headers)
+                response = await client.get(target_url, headers=headers)
                 response.raise_for_status()
                 html = response.text
             except Exception as e:
                 html = ""
-                print(f"UniversalScraper error fetching {url}: {e}")
+                print(f"UniversalScraper error fetching {target_url}: {e}")
             
         soup = BeautifulSoup(html, "lxml")
         

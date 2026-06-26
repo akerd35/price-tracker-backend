@@ -44,7 +44,7 @@ async def update_prices_job():
                 logger.error(f"Ürün '{product.name}' güncellenirken hata oluştu: {e}")
 
 scheduler = AsyncIOScheduler()
-scheduler.add_job(update_prices_job, 'interval', minutes=1, id='update_prices_job', replace_existing=True)
+scheduler.add_job(update_prices_job, 'interval', hours=2, id='update_prices_job', replace_existing=True)
 
 def start_scheduler():
     scheduler.start()
